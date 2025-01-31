@@ -28,7 +28,7 @@
     let dealSpins = userVariables.deal_spins;
     let commonPrizeCount = 0;
 
-    let prizes = [
+    let basePrizes = [
       { key: "a1", text: "Книга «Говорим откровенно»", dropChance: +a1 > 0 ? 1 : 0 },
       { key: "a2", text: "Карты для пар", dropChance: +a2 > 0 ? 1 : 0 },
       { key: "a3", text: "Грант на программу «Shine BRIGHT»", dropChance: +a3 > 0 ? 3 : 0 },
@@ -39,14 +39,15 @@
       { key: "a8", text: "Букет цветов", dropChance: +a8 > 0 ? 0.5 : 0 }
     ];
 
-    // Проверяем, есть ли у пользователя уже полученные призы
-    if (receivedPrizes.length > 0) {
-      prizes = prizes.filter(prize => !receivedPrizes.includes(prize.key));
+    function getAvailablePrizes() {
+      return receivedPrizes.length > 0
+        ? basePrizes.filter(prize => !receivedPrizes.includes(prize.key))
+        : basePrizes;
     }
 
     function adjustChances() {
       if (commonPrizeCount >= 5) {
-        prizes.forEach(prize => {
+        basePrizes.forEach(prize => {
           if (prize.dropChance < 5) {
             prize.dropChance *= 2;
           }
@@ -54,18 +55,19 @@
       }
     }
 
-    function dropPrize(items) {
+    function dropPrize() {
+      let prizes = getAvailablePrizes();
       adjustChances();
-      const total = items.reduce((acc, item) => acc + item.dropChance, 0);
+      const total = prizes.reduce((acc, item) => acc + item.dropChance, 0);
       const chance = Math.random() * total;
       let current = 0;
-      for (let i = 0; i < items.length; i++) {
-        if (current <= chance && chance < current + items[i].dropChance) {
-          return i;
+      for (let i = 0; i < prizes.length; i++) {
+        if (current <= chance && chance < current + prizes[i].dropChance) {
+          return prizes[i];
         }
-        current += items[i].dropChance;
+        current += prizes[i].dropChance;
       }
-      return items.length - 1;
+      return prizes[prizes.length - 1];
     }
 
     function setSpinsCount() {
@@ -74,27 +76,33 @@
       if (availableSpins <= 0) {
         isGetPrize = true;
         document.body.classList.add("no-spin");
+        showNoSpinsPopup();
       }
     }
 
-    async function sendPrizeToBot(prizeIndex) {
+    function showNoSpinsPopup() {
+      const popupElem = document.querySelector(".popup-no-spins");
+      if (popupElem) {
+        popupElem.classList.remove("hide");
+      } else {
+        console.error("Элемент .popup-no-spins не найден");
+      }
+    }
+
+    async function sendPrizeToBot(prize) {
+      receivedPrizes.push(prize.key); 
       return await fetch("https://chatter.salebot.pro/api/da37e22b33eb13cc4cabaa04dfe21df9/callback", {
         method: "POST",
         body: JSON.stringify({
-          message: `приз_${prizeIndex + 1}`,
+          message: `prize_${prize.key}`,
           client_id: clientId
         })
       });
     }
 
-    async function getUserVariables(id) {
-      return await fetch(`https://chatter.salebot.pro/api/da37e22b33eb13cc4cabaa04dfe21df9/get_variables?client_id=${id}`)
-        .then(body => body.json());
-    }
-
-    function showPrizePopup(index) {
+    function showPrizePopup(prize) {
       const popupElem = document.querySelector(".popup");
-      const prizeElem = document.querySelector(`.prize-${index + 1}`);
+      const prizeElem = document.querySelector(`.prize-${prize.key}`);
       
       if (popupElem) {
         popupElem.classList.remove("hide");
@@ -105,7 +113,7 @@
       if (prizeElem) {
         prizeElem.classList.remove("hide");
       } else {
-        console.error(`Элемент .prize-${index + 1} не найден`);
+        console.error(`Элемент .prize-${prize.key} не найден`);
       }
     }
 
@@ -115,16 +123,16 @@
       }
       isGetPrize = true;
       e.target.classList.add("active");
-      const prizeId = dropPrize(prizes);
+      const prize = dropPrize();
 
-      if (prizes[prizeId].dropChance > 10) {
+      if (prize.dropChance > 10) {
         commonPrizeCount++;
       }
 
       setTimeout(async () => {
-        showPrizePopup(prizeId);
+        showPrizePopup(prize);
         showBackButton();
-        await sendPrizeToBot(prizeId);
+        await sendPrizeToBot(prize);
         setSpinsCount();
       }, 800);
     }
