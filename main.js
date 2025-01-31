@@ -10,7 +10,7 @@
       if (!tg) {
         return;
       }
-      tg?.MainButton.setText("Благодарю")
+      tg?.MainButton.setText("Забрать подарок")
         .show()
         .onClick(() => {
           tg.close();
@@ -29,31 +29,22 @@
     let commonPrizeCount = 0;
 
     let prizes = [
-      { key: "a1", text: "Книга «Говорим откровенно»", dropChance: +a1 > 0 ? 1 : 0 },
-      { key: "a2", text: "Карты для пар", dropChance: +a2 > 0 ? 1 : 0 },
-      { key: "a3", text: "Грант на программу «Shine BRIGHT»", dropChance: +a3 > 0 ? 3 : 0 },
-      { key: "a4", text: "Личная консультация с Джемой", dropChance: +a4 > 0 ? 0.5 : 0 },
-      { key: "a5", text: "Доступ в Семью на месяц", dropChance: +a5 > 0 ? 3 : 0 },
-      { key: "a6", text: "Сертификат в SPA", dropChance: +a6 > 0 ? 1 : 0 },
-      { key: "a7", text: "Аудиопрактика (безлимит)", dropChance: 90 },
-      { key: "a8", text: "Букет цветов", dropChance: +a8 > 0 ? 0.5 : 0 }
+      { key: "a1", text: "Напечатанный Ежедневник", dropChance: +a1 > 0 ? 5 : 0 },
+      { key: "a2", text: "Карты для пар", dropChance: +a2 > 0 ? 8 : 0 },
+      { key: "a3", text: "Скидка 50% на курс «Говорим откровенно»", dropChance: +a3 > 0 ? 7 : 0 },
+      { key: "a4", text: "Консультация с Джемой", dropChance: +a4 > 0 ? 1 : 0 },
+      { key: "a5", text: "Доступ в Семью на месяц для вас или вашего друга", dropChance: +a5 > 0 ? 7 : 0 },
+      { key: "a6", text: "Сертификат в SPA", dropChance: +a6 > 0 ? 5 : 0 },
+      { key: "a7", text: "Видео про коммуникацию (безлимит)", dropChance: 35 },
+      { key: "a8", text: "Офлайн встреча в Москве с Джемой", dropChance: +a8 > 0 ? 35 : 0 }
     ];
 
-    // Исключаем уже полученные призы из списка доступных
     prizes = prizes.filter(prize => !receivedPrizes.includes(prize.key));
 
-    function adjustChances() {
-      if (commonPrizeCount >= 5) {
-        prizes.forEach(prize => {
-          if (prize.dropChance < 5) {
-            prize.dropChance *= 2;
-          }
-        });
-      }
-    }
+    const phoneElems = document.querySelectorAll(".phone");
+    const popupElem = document.querySelector(".popup");
 
     function dropPrize() {
-      adjustChances();
       const total = prizes.reduce((acc, item) => acc + item.dropChance, 0);
       const chance = Math.random() * total;
       let current = 0;
@@ -79,20 +70,16 @@
       return await fetch("https://chatter.salebot.pro/api/da37e22b33eb13cc4cabaa04dfe21df9/callback", {
         method: "POST",
         body: JSON.stringify({
-          message: `prize_${prize.key}`,
+          message: `приз_${prize.key}`,
           client_id: clientId
         })
       });
     }
 
-    async function getUserVariables(id) {
-      return await fetch(`https://chatter.salebot.pro/api/da37e22b33eb13cc4cabaa04dfe21df9/get_variables?client_id=${id}`)
-        .then(body => body.json());
-    }
-
     function showPrizePopup(prize) {
       popupElem.classList.remove("hide");
       document.querySelector(`.prize-${prize.key}`).classList.remove("hide");
+      console.log(prize);
     }
 
     function onPhoneClick(e) {
@@ -102,11 +89,6 @@
       isGetPrize = true;
       e.target.classList.add("active");
       const prize = dropPrize();
-
-      if (prize.dropChance > 10) {
-        commonPrizeCount++;
-      }
-
       setTimeout(async () => {
         showPrizePopup(prize);
         showBackButton();
@@ -115,8 +97,10 @@
       }, 800);
     }
 
-    phoneElems.forEach(el => {
-      el.addEventListener("click", onPhoneClick);
+    document.addEventListener("DOMContentLoaded", () => {
+      phoneElems.forEach(el => {
+        el.addEventListener("click", onPhoneClick);
+      });
     });
   }, 0);
 })();
