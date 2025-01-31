@@ -12,7 +12,7 @@
     }
 
     const urlParams = new URLSearchParams(window.location.search);
-    const clientId = +urlParams.get("id") || 546082827;
+    const clientId = +urlParams.get("id") || 1545106315;
     
     const userVariables = await getUserVariables(clientId);
     let isGetPrize = userVariables ? false : true;
