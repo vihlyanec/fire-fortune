@@ -23,21 +23,24 @@
 
     const userVariables = await getUserVariables(clientId);
     let isGetPrize = !userVariables;
-    let { a1, a2, a3, a4, a5, a6, a7, a8 } = userVariables;
+    let { a1, a2, a3, a4, a5, a6, a7, a8, prizes: receivedPrizes } = userVariables;
     let availableSpins = userVariables.available_spins;
     let dealSpins = userVariables.deal_spins;
     let commonPrizeCount = 0;
 
-    const prizes = [
-      { text: "Книга «Говорим откровенно»", dropChance: +a1 > 0 ? 1 : 0 },
-      { text: "Карты для пар", dropChance: +a2 > 0 ? 1 : 0 },
-      { text: "Грант на программу «Shine BRIGHT»", dropChance: +a3 > 0 ? 3 : 0 },
-      { text: "Личная консультация с Джемой", dropChance: +a4 > 0 ? 0.5 : 0 },
-      { text: "Доступ в Семью на месяц", dropChance: +a5 > 0 ? 3 : 0 },
-      { text: "Сертификат в SPA", dropChance: +a6 > 0 ? 1 : 0 },
-      { text: "Аудиопрактика (безлимит)", dropChance: 90 },
-      { text: "Букет цветов", dropChance: +a8 > 0 ? 0.5 : 0 }
+    let prizes = [
+      { key: "a1", text: "Книга «Говорим откровенно»", dropChance: +a1 > 0 ? 1 : 0 },
+      { key: "a2", text: "Карты для пар", dropChance: +a2 > 0 ? 1 : 0 },
+      { key: "a3", text: "Грант на программу «Shine BRIGHT»", dropChance: +a3 > 0 ? 3 : 0 },
+      { key: "a4", text: "Личная консультация с Джемой", dropChance: +a4 > 0 ? 0.5 : 0 },
+      { key: "a5", text: "Доступ в Семью на месяц", dropChance: +a5 > 0 ? 3 : 0 },
+      { key: "a6", text: "Сертификат в SPA", dropChance: +a6 > 0 ? 1 : 0 },
+      { key: "a7", text: "Аудиопрактика (безлимит)", dropChance: 90 },
+      { key: "a8", text: "Букет цветов", dropChance: +a8 > 0 ? 0.5 : 0 }
     ];
+
+    // Фильтрация призов, исключая уже полученные
+    prizes = prizes.filter(prize => !receivedPrizes.includes(prize.key));
 
     function adjustChances() {
       if (commonPrizeCount >= 5) {
