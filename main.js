@@ -1,6 +1,5 @@
 (() => {
   setTimeout(async () => {
-    // ---------- TG WEB APP ----------
     const tg = window.Telegram?.WebApp;
 
     if (tg) {
@@ -11,152 +10,105 @@
       if (!tg) {
         return;
       }
-
-      tg?.MainButton.setText("Забрать подарок")
+      tg?.MainButton.setText("Благодарю")
         .show()
-        .onClick(function () {
+        .onClick(() => {
           tg.close();
           webviewClose();
         });
     }
 
-    // ---------- Получение переменных пользователя ----------
-
     const urlParams = new URLSearchParams(window.location.search);
-    const clientId = +urlParams.get("id") || 546082827;
+    const clientId = +urlParams.get("id") || 1545106315;
 
     const userVariables = await getUserVariables(clientId);
-
-    let isGetPrize = userVariables ? false : true;
-
-    let { a1, a2, a3, a4, a5, a6, a7, a8} =
-      userVariables;
+    let isGetPrize = !userVariables;
+    let { a1, a2, a3, a4, a5, a6, a7, a8, prizes: receivedPrizes } = userVariables;
     let availableSpins = userVariables.available_spins;
-    let dealSpins = userVariables.deal_spins
+    let dealSpins = userVariables.deal_spins;
+    let commonPrizeCount = 0;
 
-    // список призов
     const prizes = [
-      {
-        text: "Напечатанный Ежедневник",
-        dropChance: +a1 > 0 ? 5 : 0,
-      },
-      {
-        text: "Карты для пар",
-        dropChance: +a2 > 0 ? 8 : 0,
-      },
-      {
-        text: "Скидка 50% на курс «Говорим откровенно»",
-        dropChance: +a3 > 0 ? 7 : 0,
-      },
-      {
-        text: "Консультация с Джемой",
-        dropChance: +a4 > 0 ? 1 : 0,
-      },
-      {
-        text: "Доступ в Семью на месяц для вас или вашего друга",
-        dropChance: +a5 > 0 ? 7 : 0,
-      },
-      {
-        text: "Сертификат в SPA",
-        dropChance: +a6 > 0 ? 5 : 0,
-      },
-      {
-        text: "Видео про коммуникацию (безлимит)",
-        dropChance: 35,
-      },
-      {
-        text: "Офлайн встреча в Москве с Джемой",
-        dropChance: +a8 > 0 ? 35 : 0,
-      },
+      { key: "a1", text: "Книга «Говорим откровенно»", dropChance: +a1 > 0 ? 1 : 0 },
+      { key: "a2", text: "Карты для пар", dropChance: +a2 > 0 ? 1 : 0 },
+      { key: "a3", text: "Грант на программу «Shine BRIGHT»", dropChance: +a3 > 0 ? 3 : 0 },
+      { key: "a4", text: "Личная консультация с Джемой", dropChance: +a4 > 0 ? 0.5 : 0 },
+      { key: "a5", text: "Доступ в Семью на месяц", dropChance: +a5 > 0 ? 3 : 0 },
+      { key: "a6", text: "Сертификат в SPA", dropChance: +a6 > 0 ? 1 : 0 },
+      { key: "a7", text: "Аудиопрактика (безлимит)", dropChance: 90 },
+      { key: "a8", text: "Букет цветов", dropChance: +a8 > 0 ? 0.5 : 0 }
     ];
 
-    // ---------- DOM элементы ----------
-    const phoneElems = document.querySelectorAll(".phone");
-    const popupElem = document.querySelector(".popup");
-    const popupTextElem = document.querySelector(".popup__text");
+    // Исключаем уже полученные призы из списка доступных
+    function filterPrizes() {
+      return prizes.filter(prize => !receivedPrizes.includes(prize.key));
+    }
 
-    // ---------- Шанс дропа ----------
-    function lerp(min, max, value) {
-      return (1 - value) * min + value * max;
+    function adjustChances() {
+      if (commonPrizeCount >= 5) {
+        prizes.forEach(prize => {
+          if (prize.dropChance < 5) {
+            prize.dropChance *= 2;
+          }
+        });
+      }
     }
 
     function dropPrize(items) {
-      const total = items.reduce(
-        (accumulator, item) => accumulator + item.dropChance,
-        0
-      );
-      const chance = lerp(0, total, Math.random());
-
+      adjustChances();
+      const filteredPrizes = filterPrizes();
+      const total = filteredPrizes.reduce((acc, item) => acc + item.dropChance, 0);
+      const chance = Math.random() * total;
       let current = 0;
-      for (let i = 0; i < items.length; i++) {
-        item = items[i];
-
-        if (current <= chance && chance < current + item.dropChance) {
-          return i;
+      for (let i = 0; i < filteredPrizes.length; i++) {
+        if (current <= chance && chance < current + filteredPrizes[i].dropChance) {
+          return prizes.findIndex(prize => prize.key === filteredPrizes[i].key);
         }
-
-        current += item.dropChance;
+        current += filteredPrizes[i].dropChance;
       }
-
-      return current;
-    }
-
-    // ---------- Первоначальные настройки ----------
-    // Если нет вращений
-    if (availableSpins <= 0) {
-      isGetPrize = true;
-      document.body.classList.add("no-spin");
-      showPrizePopup("no-spin");
+      return prizes.findIndex(prize => prize.key === filteredPrizes[filteredPrizes.length - 1].key);
     }
 
     function setSpinsCount() {
       availableSpins -= 1;
       dealSpins += 1;
-
       if (availableSpins <= 0) {
         isGetPrize = true;
         document.body.classList.add("no-spin");
       }
     }
 
-    // отправляем подарок в бота
     async function sendPrizeToBot(prizeIndex) {
-      return await fetch(
-        "https://chatter.salebot.pro/api/da37e22b33eb13cc4cabaa04dfe21df9/callback",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            message: `приз_${prizeIndex + 1}`,
-            client_id: clientId,
-          }),
-        }
-      );
+      return await fetch("https://chatter.salebot.pro/api/da37e22b33eb13cc4cabaa04dfe21df9/callback", {
+        method: "POST",
+        body: JSON.stringify({
+          message: `prize_${prizeIndex + 1}`,
+          client_id: clientId
+        })
+      });
     }
 
-    // получаем переменные
     async function getUserVariables(id) {
-      return await fetch(
-        `https://chatter.salebot.pro/api/da37e22b33eb13cc4cabaa04dfe21df9/get_variables?client_id=${id}`
-      ).then((body) => body.json());
+      return await fetch(`https://chatter.salebot.pro/api/da37e22b33eb13cc4cabaa04dfe21df9/get_variables?client_id=${id}`)
+        .then(body => body.json());
     }
 
-    // ---------- Попап----------
     function showPrizePopup(index) {
       popupElem.classList.remove("hide");
       document.querySelector(`.prize-${index == "no-spin" ? index : index + 1}`).classList.remove("hide");
-      console.log(prizes[index]);
     }
 
-    // ---------- Функции обработчиков событий ----------
     function onPhoneClick(e) {
       if (isGetPrize) {
         return;
       }
       isGetPrize = true;
-
       e.target.classList.add("active");
-
       const prizeId = dropPrize(prizes);
+
+      if (prizes[prizeId].dropChance > 10) {
+        commonPrizeCount++;
+      }
 
       setTimeout(async () => {
         showPrizePopup(prizeId);
@@ -166,8 +118,7 @@
       }, 800);
     }
 
-    // ---------- Обработчики событий ----------
-    phoneElems.forEach((el) => {
+    phoneElems.forEach(el => {
       el.addEventListener("click", onPhoneClick);
     });
   }, 0);
