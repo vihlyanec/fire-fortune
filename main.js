@@ -28,7 +28,7 @@
     let dealSpins = userVariables.deal_spins;
     let commonPrizeCount = 0;
 
-    const prizes = [
+    let prizes = [
       { key: "a1", text: "Книга «Говорим откровенно»", dropChance: +a1 > 0 ? 1 : 0 },
       { key: "a2", text: "Карты для пар", dropChance: +a2 > 0 ? 1 : 0 },
       { key: "a3", text: "Грант на программу «Shine BRIGHT»", dropChance: +a3 > 0 ? 3 : 0 },
@@ -40,9 +40,7 @@
     ];
 
     // Исключаем уже полученные призы из списка доступных
-    function filterPrizes() {
-      return prizes.filter(prize => !receivedPrizes.includes(prize.key));
-    }
+    prizes = prizes.filter(prize => !receivedPrizes.includes(prize.key));
 
     function adjustChances() {
       if (commonPrizeCount >= 5) {
@@ -54,19 +52,18 @@
       }
     }
 
-    function dropPrize(items) {
+    function dropPrize() {
       adjustChances();
-      const filteredPrizes = filterPrizes();
-      const total = filteredPrizes.reduce((acc, item) => acc + item.dropChance, 0);
+      const total = prizes.reduce((acc, item) => acc + item.dropChance, 0);
       const chance = Math.random() * total;
       let current = 0;
-      for (let i = 0; i < filteredPrizes.length; i++) {
-        if (current <= chance && chance < current + filteredPrizes[i].dropChance) {
-          return prizes.findIndex(prize => prize.key === filteredPrizes[i].key);
+      for (let i = 0; i < prizes.length; i++) {
+        if (current <= chance && chance < current + prizes[i].dropChance) {
+          return prizes[i];
         }
-        current += filteredPrizes[i].dropChance;
+        current += prizes[i].dropChance;
       }
-      return prizes.findIndex(prize => prize.key === filteredPrizes[filteredPrizes.length - 1].key);
+      return prizes[prizes.length - 1];
     }
 
     function setSpinsCount() {
@@ -78,11 +75,11 @@
       }
     }
 
-    async function sendPrizeToBot(prizeIndex) {
+    async function sendPrizeToBot(prize) {
       return await fetch("https://chatter.salebot.pro/api/da37e22b33eb13cc4cabaa04dfe21df9/callback", {
         method: "POST",
         body: JSON.stringify({
-          message: `prize_${prizeIndex + 1}`,
+          message: `prize_${prize.key}`,
           client_id: clientId
         })
       });
@@ -93,9 +90,9 @@
         .then(body => body.json());
     }
 
-    function showPrizePopup(index) {
+    function showPrizePopup(prize) {
       popupElem.classList.remove("hide");
-      document.querySelector(`.prize-${index == "no-spin" ? index : index + 1}`).classList.remove("hide");
+      document.querySelector(`.prize-${prize.key}`).classList.remove("hide");
     }
 
     function onPhoneClick(e) {
@@ -104,16 +101,16 @@
       }
       isGetPrize = true;
       e.target.classList.add("active");
-      const prizeId = dropPrize(prizes);
+      const prize = dropPrize();
 
-      if (prizes[prizeId].dropChance > 10) {
+      if (prize.dropChance > 10) {
         commonPrizeCount++;
       }
 
       setTimeout(async () => {
-        showPrizePopup(prizeId);
+        showPrizePopup(prize);
         showBackButton();
-        await sendPrizeToBot(prizeId);
+        await sendPrizeToBot(prize);
         setSpinsCount();
       }, 800);
     }
