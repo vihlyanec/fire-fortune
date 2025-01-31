@@ -28,7 +28,7 @@
     let dealSpins = userVariables.deal_spins;
     let commonPrizeCount = 0;
 
-    let prizes = [
+    const prizes = [
       { key: "a1", text: "Напечатанный Ежедневник", dropChance: +a1 > 0 ? 5 : 0 },
       { key: "a2", text: "Карты для пар", dropChance: +a2 > 0 ? 8 : 0 },
       { key: "a3", text: "Скидка 50% на курс «Говорим откровенно»", dropChance: +a3 > 0 ? 7 : 0 },
@@ -39,22 +39,22 @@
       { key: "a8", text: "Офлайн встреча в Москве с Джемой", dropChance: +a8 > 0 ? 35 : 0 }
     ];
 
-    prizes = prizes.filter(prize => !receivedPrizes.includes(prize.key));
-
-    const phoneElems = document.querySelectorAll(".phone");
-    const popupElem = document.querySelector(".popup");
+    function filterPrizes() {
+      return prizes.filter(prize => !receivedPrizes.includes(prize.key));
+    }
 
     function dropPrize() {
-      const total = prizes.reduce((acc, item) => acc + item.dropChance, 0);
+      const filteredPrizes = filterPrizes();
+      const total = filteredPrizes.reduce((acc, item) => acc + item.dropChance, 0);
       const chance = Math.random() * total;
       let current = 0;
-      for (let i = 0; i < prizes.length; i++) {
-        if (current <= chance && chance < current + prizes[i].dropChance) {
-          return prizes[i];
+      for (let i = 0; i < filteredPrizes.length; i++) {
+        if (current <= chance && chance < current + filteredPrizes[i].dropChance) {
+          return filteredPrizes[i];
         }
-        current += prizes[i].dropChance;
+        current += filteredPrizes[i].dropChance;
       }
-      return prizes[prizes.length - 1];
+      return filteredPrizes[filteredPrizes.length - 1];
     }
 
     function setSpinsCount() {
@@ -97,10 +97,9 @@
       }, 800);
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      phoneElems.forEach(el => {
-        el.addEventListener("click", onPhoneClick);
-      });
+    const phoneElems = document.querySelectorAll(".phone");
+    phoneElems.forEach(el => {
+      el.addEventListener("click", onPhoneClick);
     });
   }, 0);
 })();
