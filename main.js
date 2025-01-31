@@ -39,8 +39,10 @@
       { key: "a8", text: "Букет цветов", dropChance: +a8 > 0 ? 0.5 : 0 }
     ];
 
-    // Фильтрация призов, исключая уже полученные
-    prizes = prizes.filter(prize => !receivedPrizes.includes(prize.key));
+    // Проверяем, есть ли у пользователя уже полученные призы
+    if (receivedPrizes.length > 0) {
+      prizes = prizes.filter(prize => !receivedPrizes.includes(prize.key));
+    }
 
     function adjustChances() {
       if (commonPrizeCount >= 5) {
@@ -79,7 +81,7 @@
       return await fetch("https://chatter.salebot.pro/api/da37e22b33eb13cc4cabaa04dfe21df9/callback", {
         method: "POST",
         body: JSON.stringify({
-          message: `prize_${prizeIndex + 1}`,
+          message: `приз_${prizeIndex + 1}`,
           client_id: clientId
         })
       });
@@ -91,8 +93,20 @@
     }
 
     function showPrizePopup(index) {
-      popupElem.classList.remove("hide");
-      document.querySelector(`.prize-${index == "no-spin" ? index : index + 1}`).classList.remove("hide");
+      const popupElem = document.querySelector(".popup");
+      const prizeElem = document.querySelector(`.prize-${index + 1}`);
+      
+      if (popupElem) {
+        popupElem.classList.remove("hide");
+      } else {
+        console.error("Элемент .popup не найден");
+      }
+      
+      if (prizeElem) {
+        prizeElem.classList.remove("hide");
+      } else {
+        console.error(`Элемент .prize-${index + 1} не найден`);
+      }
     }
 
     function onPhoneClick(e) {
@@ -115,6 +129,7 @@
       }, 800);
     }
 
+    const phoneElems = document.querySelectorAll(".phone");
     phoneElems.forEach(el => {
       el.addEventListener("click", onPhoneClick);
     });
